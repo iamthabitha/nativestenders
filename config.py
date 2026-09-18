@@ -41,12 +41,10 @@ def load_settings() -> Settings:
         gmail_app_password=os.environ["GMAIL_APP_PASSWORD"],
         alert_recipients=_split_csv(os.environ["ALERT_RECIPIENTS"]),
         keywords=_split_csv(
-            os.environ.get(
-                "KEYWORDS", "newspaper,advertising,media buying,radio,billboard"
-            )
+            os.environ.get("KEYWORDS")
+            or "newspaper,advertising,media buying,radio,billboard"
         ),
-        lookback_days=int(os.environ.get("LOOKBACK_DAYS", "30")),
-        ocds_api_base=os.environ.get(
-            "OCDS_API_BASE", "https://ocds-api.etenders.gov.za/api/OCDSReleases"
-        ),
+        lookback_days=int(os.environ.get("LOOKBACK_DAYS") or "30"),
+        ocds_api_base=os.environ.get("OCDS_API_BASE")
+        or "https://ocds-api.etenders.gov.za/api/OCDSReleases",
     )
