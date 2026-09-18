@@ -1,0 +1,40 @@
+name: Tender alert check
+
+on:
+  schedule:
+    # Runs every 3 hours. Cron is UTC; adjust as you like.
+    - cron: "0 */3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  check-tenders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tender check
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ALERT_RECIPIENTS: ${{ secrets.ALERT_RECIPIENTS }}
+          KEYWORDS: ${{ vars.KEYWORDS }}
+          LOOKBACK_DAYS: ${{ vars.LOOKBACK_DAYS }}
+        run: python main.py
+
+      - name: Commit updated database
+        run: |
+          git config user.name "tender-alert-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/seen_tenders.db
+          git diff --cached --quiet || git commit -m "Update seen-tenders database [skip ci]"
+          git push
