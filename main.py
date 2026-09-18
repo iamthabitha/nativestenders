@@ -12,7 +12,7 @@ import sys
 from config import load_settings
 from filters import matches_keywords
 from notifier import TenderEvent, build_body, build_subject, send_email
-from ocds_client import OCDSClientError, fetch_releases
+from ocds_client import fetch_releases
 from parser import parse_release
 from storage import TenderStore
 
@@ -27,12 +27,7 @@ def run() -> int:
     settings = load_settings()
     store = TenderStore(settings.db_path)
 
-    try:
-        releases = list(fetch_releases(settings.ocds_api_base, settings.lookback_days))
-    except OCDSClientError:
-        logger.exception("Could not fetch releases from the OCDS API")
-        return 1
-
+    releases = list(fetch_releases(settings.ocds_api_base, settings.lookback_days))
     logger.info("Fetched %d release(s) in the lookback window", len(releases))
 
     events: list[TenderEvent] = []

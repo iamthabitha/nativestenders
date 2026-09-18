@@ -66,14 +66,26 @@ def fetch_releases(api_base: str, lookback_days: int) -> Iterator[dict]:
     }
 
     page = 0
+    total_yielded = 0
     while url:
         page += 1
         logger.info("Fetching OCDS releases page %d ...", page)
-        payload = _get_with_retries(url, params)
+        try:
+            payload = _get_with_retries(url, params)
+        except OCDSClientError:
+            logger.error(
+                "Giving up on page %d after retries; keeping the %d release(s) "
+                "already fetched from earlier pages. The next scheduled run's "
+                "overlapping lookback window will pick up anything missed here.",
+                page,
+                total_yielded,
+            )
+            return
         params = None  # subsequent requests use the full `next` URL as-is
 
         releases = payload.get("releases", [])
         logger.info("Page %d returned %d release(s)", page, len(releases))
+        total_yielded += len(releases)
         yield from releases
 
         url = (payload.get("links") or {}).get("next")
