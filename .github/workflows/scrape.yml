@@ -28,7 +28,10 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           ALERT_RECIPIENTS: ${{ secrets.ALERT_RECIPIENTS }}
           KEYWORDS: ${{ vars.KEYWORDS }}
-          LOOKBACK_DAYS: ${{ vars.LOOKBACK_DAYS }}
+          # 5 days is enough once the bot runs every 3 hours and remembers
+          # what it's already alerted on -- raise this if you ever need to
+          # backfill a longer gap (e.g. after the schedule was paused).
+          LOOKBACK_DAYS: "5"
         run: python main.py
 
       - name: Commit updated database
