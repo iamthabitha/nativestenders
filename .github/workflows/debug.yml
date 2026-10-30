@@ -3,12 +3,16 @@ name: Debug search (manual)
 on:
   workflow_dispatch:
     inputs:
+      script:
+        description: "Which debug_*.py script to run"
+        required: false
+        default: "debug_search.py"
       search_terms:
-        description: "Comma-separated terms to search for (buyer name, bid number, etc.)"
+        description: "Comma-separated terms to search for (buyer name, bid number, etc.) -- used by debug_search.py"
         required: false
         default: "Metsimaholo,Sekhukhune,Richmond"
       lookback_days:
-        description: "How many days back to search"
+        description: "How many days back to search -- used by debug_search.py"
         required: false
         default: "60"
 
@@ -28,11 +32,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run debug search
+      - name: Run debug script
         env:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           ALERT_RECIPIENTS: ${{ secrets.ALERT_RECIPIENTS }}
           SEARCH_TERMS: ${{ inputs.search_terms }}
           DEBUG_LOOKBACK_DAYS: ${{ inputs.lookback_days }}
-        run: python debug_search.py
+          DEBUG_SCRIPT: ${{ inputs.script }}
+        run: python "$DEBUG_SCRIPT"
