@@ -56,6 +56,16 @@ class TenderRecord:
             ]
         )
 
+    @property
+    def document_urls(self) -> list[str]:
+        """Sorted document URLs -- used to spot a newly-added document (an
+        award notice, cancellation notice, addendum, etc.) even when nothing
+        else about the tender changed. This feed doesn't expose structured
+        award/status/cancellation data at all (confirmed against live closed
+        tenders), so a new document is the only signal we have that
+        something happened."""
+        return sorted(doc.url for doc in self.documents)
+
 
 def _first_nonempty(*values):
     for value in values:

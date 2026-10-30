@@ -26,12 +26,29 @@ Each run:
    of everything we've already alerted on. A tender is flagged as:
    - **NEW** — first time we've seen this OCID.
    - **CLOSING DATE CHANGED** — same OCID, closing date differs from last run.
-   - **ERRATUM / AMENDMENT** — same OCID, an amendment was added.
+   - **ERRATUM / AMENDMENT** — same OCID, an amendment was added (this feed
+     has never populated amendments in practice -- see note below).
+   - **NEW DOCUMENT ADDED** — same OCID, a document was added to the tender
+     that wasn't there last time. This feed doesn't carry structured
+     award/outcome/cancellation/status data at all (confirmed against live
+     tenders closed over a month ago: `awards`, `contracts`, and `status`
+     are always empty) -- a newly-added document is the only signal we have
+     that something happened. It could be an award notice, a cancellation,
+     an addendum, or just a clarification; the email flags it and links the
+     document so you can check.
    - **UPDATED** — same OCID, something else in the tracked fields changed.
 4. **Email** one alert per new/changed tender via Gmail SMTP, containing:
    description, organ of state (buyer), date published, closing date,
-   whether there's a compulsory briefing (and its date, or an explicit "no
-   briefing" statement), document links, and any amendment history.
+   whether there's a compulsory briefing (this feed doesn't carry that data
+   either, so the email says so honestly rather than claiming there is none),
+   document links, and any amendment history.
+
+**What this feed does *not* provide, confirmed by direct testing against
+live data:** award status (who won), a bid register (who applied), or a
+cancellation flag. The OCDS schema supports all of these, but National
+Treasury's implementation leaves them empty even for tenders closed well
+over a month ago. The "new document added" alert above is the closest
+practical substitute.
 
 > **Important — verify the schema on your first real run.** The sandbox this
 > project was built in could not reach `etenders.gov.za` (network egress was

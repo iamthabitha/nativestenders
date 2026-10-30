@@ -99,3 +99,26 @@ def json_copy_with_new_closing_date(release: dict, new_date: str) -> dict:
     updated = copy.deepcopy(release)
     updated["tender"]["tenderPeriod"]["endDate"] = new_date
     return updated
+
+
+def test_store_detects_new_document_even_without_other_changes(tmp_path):
+    # This feed never carries award/status/cancellation data (confirmed
+    # against live closed tenders), so a newly-added document -- an award
+    # notice, cancellation, addendum -- is the only signal we have. A new
+    # document with everything else unchanged must still count as "changed".
+    import copy
+
+    db_path = str(tmp_path / "test.db")
+    store = TenderStore(db_path)
+    tender = parse_release(SAMPLE_RELEASE)
+    store.check_and_record(tender)
+
+    release_with_new_doc = copy.deepcopy(SAMPLE_RELEASE)
+    release_with_new_doc["tender"]["documents"].append(
+        {"title": "Notice of Award", "url": "https://example.org/award.pdf"}
+    )
+    tender_with_new_doc = parse_release(release_with_new_doc)
+
+    diff = store.check_and_record(tender_with_new_doc)
+    assert diff.is_changed is True
+    assert [d.url for d in diff.new_documents] == ["https://example.org/award.pdf"]

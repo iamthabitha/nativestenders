@@ -7,12 +7,13 @@ changed since last time.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
-from parser import TenderRecord
+from parser import Document, TenderRecord
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS seen_tenders (
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS seen_tenders (
     fingerprint TEXT NOT NULL,
     closing_date TEXT,
     amendment_count INTEGER NOT NULL DEFAULT 0,
+    document_urls TEXT NOT NULL DEFAULT '[]',
     first_seen_at TEXT NOT NULL DEFAULT (datetime('now')),
     last_updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -34,6 +36,7 @@ class DiffResult:
     is_changed: bool
     previous_closing_date: str | None = None
     previous_amendment_count: int = 0
+    new_documents: list[Document] = field(default_factory=list)
 
 
 class TenderStore:
@@ -42,10 +45,14 @@ class TenderStore:
         self._db_path = db_path
         with self._connect() as conn:
             conn.execute(SCHEMA)
-            try:
-                conn.execute("ALTER TABLE seen_tenders ADD COLUMN buyer_name TEXT NOT NULL DEFAULT ''")
-            except sqlite3.OperationalError:
-                pass  # already has the column -- fine for a DB created before this field existed
+            for migration in (
+                "ALTER TABLE seen_tenders ADD COLUMN buyer_name TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE seen_tenders ADD COLUMN document_urls TEXT NOT NULL DEFAULT '[]'",
+            ):
+                try:
+                    conn.execute(migration)
+                except sqlite3.OperationalError:
+                    pass  # already has the column -- fine for a DB created before this field existed
 
     @contextmanager
     def _connect(self):
@@ -62,16 +69,19 @@ class TenderStore:
         Must be called at most once per tender per run, in the order you
         want "new" vs "changed" evaluated -- it mutates storage immediately.
         """
+        current_doc_urls = tender.document_urls
+
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT fingerprint, closing_date, amendment_count FROM seen_tenders WHERE ocid = ?",
+                "SELECT fingerprint, closing_date, amendment_count, document_urls "
+                "FROM seen_tenders WHERE ocid = ?",
                 (tender.ocid,),
             ).fetchone()
 
             if row is None:
                 conn.execute(
-                    "INSERT INTO seen_tenders (ocid, title, buyer_name, fingerprint, closing_date, amendment_count) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO seen_tenders (ocid, title, buyer_name, fingerprint, closing_date, "
+                    "amendment_count, document_urls) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
                         tender.ocid,
                         tender.title,
@@ -79,20 +89,26 @@ class TenderStore:
                         tender.fingerprint,
                         tender.closing_date,
                         len(tender.amendments),
+                        json.dumps(current_doc_urls),
                     ),
                 )
                 return DiffResult(is_new=True, is_changed=False)
 
-            old_fingerprint, old_closing_date, old_amendment_count = row
-            changed = old_fingerprint != tender.fingerprint
+            old_fingerprint, old_closing_date, old_amendment_count, old_doc_urls_json = row
+            old_doc_urls = set(json.loads(old_doc_urls_json or "[]"))
+            new_documents = [doc for doc in tender.documents if doc.url not in old_doc_urls]
+
+            changed = old_fingerprint != tender.fingerprint or bool(new_documents)
             if changed:
                 conn.execute(
                     "UPDATE seen_tenders SET fingerprint = ?, closing_date = ?, "
-                    "amendment_count = ?, last_updated_at = datetime('now') WHERE ocid = ?",
+                    "amendment_count = ?, document_urls = ?, last_updated_at = datetime('now') "
+                    "WHERE ocid = ?",
                     (
                         tender.fingerprint,
                         tender.closing_date,
                         len(tender.amendments),
+                        json.dumps(current_doc_urls),
                         tender.ocid,
                     ),
                 )
@@ -101,4 +117,5 @@ class TenderStore:
                 is_changed=changed,
                 previous_closing_date=old_closing_date,
                 previous_amendment_count=old_amendment_count,
+                new_documents=new_documents,
             )

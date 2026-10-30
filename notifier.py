@@ -32,6 +32,8 @@ def _event_label(event: TenderEvent) -> str:
         return "ERRATUM / AMENDMENT"
     if event.diff.previous_closing_date and event.diff.previous_closing_date != event.tender.closing_date:
         return "CLOSING DATE CHANGED"
+    if event.diff.new_documents:
+        return "NEW DOCUMENT ADDED"
     return "UPDATED"
 
 
@@ -78,6 +80,17 @@ def build_body(event: TenderEvent) -> str:
         lines.append(f"  (previous closing date was: {event.diff.previous_closing_date})")
 
     lines += ["", _briefing_line(tender), ""]
+
+    if event.diff.new_documents:
+        lines += [
+            "NEW DOCUMENT(S) SINCE OUR LAST ALERT ON THIS TENDER:",
+            "This feed doesn't carry structured award/cancellation/status data, so a new",
+            "document is our only signal something happened -- it could be an award",
+            "notice, a cancellation, an addendum, or just a clarification. Check it:",
+        ]
+        for doc in event.diff.new_documents:
+            lines.append(f"  - {doc.title}: {doc.url}")
+        lines.append("")
 
     if tender.documents:
         lines.append("Tender documents:")
