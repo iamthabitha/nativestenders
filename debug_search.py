@@ -13,7 +13,6 @@ Run: python debug_search.py
 """
 from __future__ import annotations
 
-import json
 import os
 
 from config import load_settings
@@ -59,14 +58,13 @@ def main() -> None:
         print(f"  Status: {tender.status}")
         print(f"  Closing date: {tender.closing_date}")
         print(f"  Would pass current KEYWORDS filter: {bool(would_match_keywords)} {would_match_keywords}")
+        print(f"  Description: {tender.description!r}")
+        print(f"  mainProcurementCategory: {release.get('tender', {}).get('mainProcurementCategory')}")
+        print(f"  additionalProcurementCategories: {release.get('tender', {}).get('additionalProcurementCategories')}")
         print(f"  Parsed has_briefing: {tender.has_briefing}  briefing_date: {tender.briefing_date}")
         print(f"  Parsed amendments count: {len(tender.amendments)}")
-        print("  --- raw tender.milestones ---")
-        print(json.dumps(release.get("tender", {}).get("milestones"), indent=2)[:2000])
-        print("  --- raw tender.amendments ---")
-        print(json.dumps(release.get("tender", {}).get("amendments"), indent=2)[:2000])
-        print("  --- raw top-level release keys ---")
-        print(list(release.keys()))
+        print("  --- raw tender.documents (titles only) ---")
+        print([d.get("title") or d.get("documentType") for d in (release.get("tender", {}).get("documents") or [])])
         print("  --- raw tender keys ---")
         print(list(release.get("tender", {}).keys()))
 
