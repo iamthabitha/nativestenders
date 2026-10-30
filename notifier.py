@@ -37,7 +37,15 @@ def _event_label(event: TenderEvent) -> str:
 
 def _briefing_line(tender: TenderRecord) -> str:
     if not tender.has_briefing:
-        return "No compulsory briefing session is listed for this tender."
+        # This feed's releases do not carry a "milestones" field at all (confirmed
+        # against live data, not just empty for this tender), so there is no
+        # structured signal to check briefing info against. Saying "no briefing"
+        # would be an unsupported claim -- there may well be one on the website.
+        return (
+            "Briefing session info is not available in this data feed -- check the "
+            "tender documents below, or search the tender number on "
+            "https://www.etenders.gov.za/ for compulsory briefing/site meeting details."
+        )
     compulsory = "Compulsory" if tender.briefing_is_compulsory else "Optional"
     date_text = tender.briefing_date or "date not specified"
     return f"{compulsory} briefing session: {date_text}"
