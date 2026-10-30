@@ -3,7 +3,7 @@
 Emails you when a new (or changed) tender/RFQ/bid matching your keywords
 appears on South Africa's National Treasury eTenders portal.
 
-Keywords out of the box: `newspaper`, `advertising`, `media buying`, `radio`, `billboard`.
+Keywords out of the box: `newspaper`, `advertis` (stem -- matches "advertising" and "advertisement"), `media buying`, `radio`, `billboard`.
 
 ## How it works
 

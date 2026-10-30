@@ -52,6 +52,27 @@ def test_keyword_matching_is_case_insensitive():
     assert set(matched) == {"newspaper", "billboard"}
 
 
+def test_advertis_stem_catches_advertisement_not_just_advertising():
+    # Regression test: a real live tender ("Richmond - KZ Local Municipality",
+    # RLM04/2026/2027) was missed because its description says "advertisement",
+    # and the literal keyword "advertising" is not a substring of that word.
+    release = {
+        "ocid": "ocds-9t57fa-RICHMOND-EXAMPLE",
+        "id": "RICHMOND-1",
+        "date": "2026-10-01T09:00:00Z",
+        "buyer": {"name": "Richmond - KZ Local Municipality"},
+        "tender": {
+            "title": "RLM04/2026/2027",
+            "description": "PROVISIONS OF ADVERTISEMENT IN THE PRINT MEDIA FOR A PERIOD OF 36 MONTHS",
+            "status": "active",
+            "tenderPeriod": {"startDate": "2026-10-01", "endDate": "2026-11-09"},
+        },
+    }
+    tender = parse_release(release)
+    assert matches_keywords(tender, ["advertising"]) == []
+    assert matches_keywords(tender, ["advertis"]) == ["advertis"]
+
+
 def test_store_detects_new_then_unchanged_then_changed(tmp_path):
     db_path = str(tmp_path / "test.db")
     store = TenderStore(db_path)
