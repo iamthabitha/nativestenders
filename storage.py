@@ -18,6 +18,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS seen_tenders (
     ocid TEXT PRIMARY KEY,
     title TEXT NOT NULL,
+    buyer_name TEXT NOT NULL DEFAULT '',
     fingerprint TEXT NOT NULL,
     closing_date TEXT,
     amendment_count INTEGER NOT NULL DEFAULT 0,
@@ -41,6 +42,10 @@ class TenderStore:
         self._db_path = db_path
         with self._connect() as conn:
             conn.execute(SCHEMA)
+            try:
+                conn.execute("ALTER TABLE seen_tenders ADD COLUMN buyer_name TEXT NOT NULL DEFAULT ''")
+            except sqlite3.OperationalError:
+                pass  # already has the column -- fine for a DB created before this field existed
 
     @contextmanager
     def _connect(self):
@@ -65,11 +70,12 @@ class TenderStore:
 
             if row is None:
                 conn.execute(
-                    "INSERT INTO seen_tenders (ocid, title, fingerprint, closing_date, amendment_count) "
-                    "VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO seen_tenders (ocid, title, buyer_name, fingerprint, closing_date, amendment_count) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
                     (
                         tender.ocid,
                         tender.title,
+                        tender.buyer_name,
                         tender.fingerprint,
                         tender.closing_date,
                         len(tender.amendments),
