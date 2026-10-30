@@ -42,7 +42,7 @@ def load_settings() -> Settings:
         alert_recipients=_split_csv(os.environ["ALERT_RECIPIENTS"]),
         keywords=_split_csv(
             os.environ.get("KEYWORDS")
-            or "newspaper,advertising,advertisement,print media,media buy,radio station,radio slots,billboard"
+            or "newspaper,advertising,print media,media buy,media agency,radio station,radio slots,billboard"
         ),
         lookback_days=int(os.environ.get("LOOKBACK_DAYS") or "30"),
         ocds_api_base=os.environ.get("OCDS_API_BASE")

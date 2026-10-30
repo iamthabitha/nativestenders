@@ -3,7 +3,10 @@
 Emails you when a new (or changed) tender/RFQ/bid matching your keywords
 appears on South Africa's National Treasury eTenders portal.
 
-Keywords out of the box: `newspaper`, `advertising`, `advertisement`, `print media`, `media buy`, `radio station`, `radio slots`, `billboard`.
+Keywords out of the box: `newspaper`, `advertising`, `print media`, `media buy`, `media agency`, `radio station`, `radio slots`, `billboard`.
+(Deliberately excludes `advertisement` -- South African government tenders use
+"re-advertisement" as boilerplate for reopening any unrelated bid, so that
+word alone floods matches with irrelevant tenders.)
 
 ## How it works
 
