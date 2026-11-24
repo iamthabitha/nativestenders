@@ -42,9 +42,21 @@ Each run:
    - **UPDATED** — same OCID, something else in the tracked fields changed.
 4. **Email** one alert per new/changed tender via Gmail SMTP, containing:
    description, organ of state (buyer), date published, closing date,
-   whether there's a compulsory briefing (this feed doesn't carry that data
-   either, so the email says so honestly rather than claiming there is none),
-   document links, and any amendment history.
+   compulsory briefing info, document links, and any amendment history.
+
+   Briefing info specifically: this feed never carries a structured
+   "milestones" field (confirmed against live data), so `pdf_scan.py`
+   downloads the tender's PDF document(s) and searches the extracted text
+   for a briefing/site-meeting mention, pulling out the surrounding
+   sentence (confirmed working against a real tender: it correctly found
+   "A Compulsory briefing session meeting will be held on 23 November
+   2026 at ... Ga-Phahla Community Hall, commencing at 10H30 to 11H00").
+   Deliberately does NOT search on the word "compulsory" alone -- that
+   appears constantly in unrelated boilerplate ("COMPULSORY BID
+   DOCUMENTS", etc.) and floods the match with noise. If nothing is
+   found (scanned-image PDF with no text layer, a download failure, or
+   the briefing just isn't mentioned in the document), the email says so
+   honestly rather than claiming there is no briefing.
 
 **What this feed does *not* provide, confirmed by direct testing against
 live data:** award status (who won), a bid register (who applied), or a
@@ -141,9 +153,15 @@ ocds_client.py   talks to the OCDS API (pagination, retries)
 parser.py        raw OCDS release -> flat TenderRecord
 filters.py       keyword matching
 storage.py       SQLite "have we alerted on this before?" memory
+pdf_scan.py      best-effort briefing/site-meeting extraction from tender PDFs
 notifier.py      builds + sends the email
 main.py          wires it all together — this is what you run/schedule
 inspect_api.py   one-off helper to sanity-check the live API schema
+debug_search.py        one-off: search the raw feed by name/term, bypassing KEYWORDS
+debug_awards.py        one-off: checks whether the feed carries award/status data
+debug_release_lookup.py one-off: look up specific ocid(s) directly (fast, no pagination)
+debug_pdf_scan.py      one-off: check what text pypdf can extract from a tender PDF
+.github/workflows/debug.yml  runs any debug_*.py manually from the Actions tab
 tests/           unit tests using a synthetic OCDS fixture (no network needed)
 ```
 

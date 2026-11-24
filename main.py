@@ -14,6 +14,7 @@ from filters import matches_keywords
 from notifier import TenderEvent, build_body, build_subject, send_email
 from ocds_client import fetch_releases
 from parser import parse_release
+from pdf_scan import find_briefing_mentions
 from storage import TenderStore
 
 logging.basicConfig(
@@ -47,6 +48,16 @@ def run() -> int:
     logger.info("%d matching tender event(s) to alert on", len(events))
 
     for event in events:
+        try:
+            event.briefing_snippets = find_briefing_mentions(
+                [doc.url for doc in event.tender.documents]
+            )
+        except Exception:
+            logger.exception(
+                "Briefing PDF scan failed for OCID %s -- sending alert without it",
+                event.tender.ocid,
+            )
+
         try:
             send_email(
                 gmail_address=settings.gmail_address,

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import smtplib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -21,6 +21,10 @@ class TenderEvent:
     tender: TenderRecord
     matched_keywords: list[str]
     diff: DiffResult
+    # Populated by main.py after construction (a best-effort PDF scan) --
+    # never required at construction time, since it's an enrichment step
+    # that must not block the underlying alert if it fails.
+    briefing_snippets: list[str] = field(default_factory=list)
 
 
 def _event_label(event: TenderEvent) -> str:
@@ -37,20 +41,35 @@ def _event_label(event: TenderEvent) -> str:
     return "UPDATED"
 
 
-def _briefing_line(tender: TenderRecord) -> str:
-    if not tender.has_briefing:
-        # This feed's releases do not carry a "milestones" field at all (confirmed
-        # against live data, not just empty for this tender), so there is no
-        # structured signal to check briefing info against. Saying "no briefing"
-        # would be an unsupported claim -- there may well be one on the website.
-        return (
-            "Briefing session info is not available in this data feed -- check the "
-            "tender documents below, or search the tender number on "
-            "https://www.etenders.gov.za/ for compulsory briefing/site meeting details."
-        )
-    compulsory = "Compulsory" if tender.briefing_is_compulsory else "Optional"
-    date_text = tender.briefing_date or "date not specified"
-    return f"{compulsory} briefing session: {date_text}"
+def _briefing_section(event: TenderEvent) -> list[str]:
+    tender = event.tender
+    if tender.has_briefing:
+        # This feed has never been observed to populate "milestones" in
+        # practice, but keep this path in case that ever changes.
+        compulsory = "Compulsory" if tender.briefing_is_compulsory else "Optional"
+        date_text = tender.briefing_date or "date not specified"
+        return [f"{compulsory} briefing session: {date_text}"]
+
+    if event.briefing_snippets:
+        lines = [
+            "Briefing session info (extracted from the tender document -- verify against "
+            "the actual document before relying on it):",
+        ]
+        for snippet in event.briefing_snippets:
+            lines.append(f"  \"{snippet}\"")
+        return lines
+
+    # No structured data (confirmed: "milestones" is never present in this feed)
+    # and scanning the tender document(s) didn't turn up a mention either. Say
+    # exactly that rather than claiming there is no briefing -- there may well
+    # be one described somewhere we didn't check (a non-PDF document, a scanned
+    # image with no text layer, or phrasing our scan doesn't recognise).
+    return [
+        "Briefing session info is not available in this data feed, and scanning "
+        "the tender document(s) didn't find a clear mention either -- check the "
+        "tender documents below yourself, or search the tender number on "
+        "https://www.etenders.gov.za/ for compulsory briefing/site meeting details."
+    ]
 
 
 def build_subject(event: TenderEvent) -> str:
@@ -79,7 +98,7 @@ def build_body(event: TenderEvent) -> str:
     ):
         lines.append(f"  (previous closing date was: {event.diff.previous_closing_date})")
 
-    lines += ["", _briefing_line(tender), ""]
+    lines += ["", *_briefing_section(event), ""]
 
     if event.diff.new_documents:
         lines += [
