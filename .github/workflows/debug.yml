@@ -15,6 +15,10 @@ on:
         description: "How many days back to search -- used by debug_search.py"
         required: false
         default: "60"
+      ocids:
+        description: "Comma-separated ocids to look up directly -- used by debug_release_lookup.py"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -40,4 +44,5 @@ jobs:
           SEARCH_TERMS: ${{ inputs.search_terms }}
           DEBUG_LOOKBACK_DAYS: ${{ inputs.lookback_days }}
           DEBUG_SCRIPT: ${{ inputs.script }}
+          OCIDS: ${{ inputs.ocids }}
         run: python "$DEBUG_SCRIPT"
