@@ -22,7 +22,7 @@ DEFAULT_OCID = "ocds-9t57fa-178943"  # Dr JS Moroka, JSM-COMMS-AD01/26-29
 
 
 def main() -> None:
-    ocid = os.environ.get("OCIDS", DEFAULT_OCID).split(",")[0].strip()
+    ocid = (os.environ.get("OCIDS") or DEFAULT_OCID).split(",")[0].strip()
     url = f"{BASE}/{ocid}"
     print(f"GET {url}")
     response = requests.get(url, timeout=60)
